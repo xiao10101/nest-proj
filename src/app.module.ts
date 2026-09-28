@@ -1,28 +1,60 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { validationSchema } from './config/validation.schema.js';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './modules/health/health.module.js';
-
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+import { configuration } from './config/configuration.js';
+import { RequestContextService } from './shared/context/request-context.service.js';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 
 @Module({
   imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'nestjs-proj',
-    }),
     ConfigModule.forRoot({
-      validationSchema
+      validationSchema,
+      isGlobal: true,
+      load: [configuration],
+      cache: true,
+      envFilePath: [`.env.${process.env.STAGE}`, '.env'],
     }),
-    HealthModule
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        pinoHttp: {
+          level: config.get('app.logLevel') ?? 'info',
+          redact: {
+            paths: ['req.headers.authorization'],
+            censor: '**REDACTED**',
+          },
+          transport:
+            process.env.NODE_ENV !== 'production'
+              ? {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+                    singleLine: true,
+                  },
+                }
+              : undefined,
+          autoLogging: {
+            ignore: (req) => req.url?.startsWith('/api/v1/health') ?? false,
+          },
+        },
+      }),
+    }),
+    HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    RequestContextService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestContextInterceptor,
+    },
+  ],
 })
 export class AppModule {}
