@@ -1,4 +1,12 @@
 export default {
   extends: ['@commitlint/config-conventional'],
-  // 可选：自己加规则，比如 scope 白名单、subject 不能全大写
-};
+  rules: {
+    'type-enum': [2, 'always', [
+      'feat','fix','docs','style','refactor','perf',
+      'test','build','ci','chore','revert'
+    ]],
+    'header-max-length': [2, 'always', 100],
+    'subject-empty': [2, 'never'],
+    'type-empty': [2, 'never']
+  }
+}
