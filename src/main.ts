@@ -7,6 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
+  app.enableShutdownHooks();
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api/v1');
   const port = app.get(ConfigService).get('app.port');

@@ -57,7 +57,18 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **0.2 ConfigModule + Joi 启动校验**：完成（含清理 `@nestjs/observe` 遥测依赖）
 - [x] **0.3 全局前缀 + Health 模块**：`/api/v1/health` 返回 `{status,timestamp,uptime,checks}`，db/redis 预留 TODO；逻辑分层到 HealthService
 - [x] **0.4 代码规范**：oxlint + prettier + husky(pre-commit=lint-staged, commit-msg=commitlint) + Conventional Commits 生效（验证提交 db0dd98）
-- [ ] **阶段 1 第一个任务待开始**：结构化日志 pino + requestId 全链路透传 + 优雅停机
+
+### 阶段 1（✅ 已完成 2026-09-28）
+
+- [x] **1.1 结构化日志**：nestjs-pino + forRootAsync（ConfigService 注入，绕开装饰器求值时机坑）+ LOG_LEVEL 独立配置 + autoLogging 排除 health + redact 脱敏 Authorization
+- [x] **1.2 请求上下文**：手写 AsyncLocalStorage + requestId Interceptor（透传上游 x-request-id / 生成 UUID / 响应头回写），APP_INTERCEPTOR 注册，RequestContextService 封装 set/get
+- [x] **1.3 优雅停机**：enableShutdownHooks + OnApplicationShutdown（关停日志用 console 防 pino worker 丢日志）+ /health/slow 验证善后窗口
+- [ ] **阶段 2 第一个任务待开始**：Prisma 接入 + 电商核心数据建模
+
+### 阶段 1 关键实验记录
+
+- ALS `run` vs `enterWith`：在 Nest 12 + Express + rxjs 实测中 `run` 跨异步边界（setImmediate）也能存活；最终选 `enterWith` 是因为语义自足（不依赖框架订阅时机实现细节）+ service 封装边界，非技术对错
+- pino 丢日志实证：`onApplicationShutdown` 中 `logger.warn` 丢失、`console.log` 存活 → pino-pretty transport 在 worker 线程，进程退出时在途日志蒸发（同 Sentry unload 丢事件问题）；关停路径日志必须同步写
 
 ### 踩坑记录（个人错题本）
 
@@ -71,6 +82,9 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 8. **钩子"空文件"陷阱**：`.husky/commit-msg` 文件存在但内容为空 = 钩子永远放行。配置类任务的验收必须验证"拦截路径"真的触发。
 9. tsconfig `paths` 规则：用捕获的 `*` 替换目标里的 `*`，`"@/*": ["./src/*"]` 才是对的。
 10. lint-staged 里跑了不存在的 lint 工具配置（eslint 无 config）会静默失败——工具链改动后必须实测一次拦截路径。
+11. **装饰器参数求值时机**：`@Module` 装饰器在 import 时求值，早于 ConfigModule 的 dotenv 加载——模块配置里裸读 `process.env` 拿不到 `.env` 值，必须用 `forRootAsync` + 注入 `ConfigService`（forRoot 静态求值 vs forRootAsync 容器求值）。
+12. **`nest start --watch` 绑架 Ctrl+C**：watch 父进程硬杀子进程，生命周期/信号类验证必须 `pnpm build && node dist/main.js` 在生产模式下做。
+13. **配置链路意识**：`.env` → dotenv → configuration 工厂 → ConfigService，工厂里没定义的嵌套键 `config.get` 拿不到；遇到 undefined 先查数据流向，不要绕过。
 
 ## 七、待用户补充的信息
 
