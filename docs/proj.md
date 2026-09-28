@@ -18,30 +18,30 @@
 
 ## 三、项目决策（已确认）
 
-| 项 | 决策 |
-|---|---|
-| 业务 | C 端 **电商交易**：商品/SKU、库存、购物车、订单、支付回调、超时取消 |
-| 架构 | 模块化单体起步，后期拆 Nest 微服务（通知/搜索） |
-| 环境 | Windows + PowerShell，本机已装 PostgreSQL / Redis（无需 Docker 起步） |
-| 节奏 | 每周 10h+，每阶段 5-8 个任务，1-2 阶段/周 |
+| 项     | 决策                                                                                      |
+| ------ | ----------------------------------------------------------------------------------------- |
+| 业务   | C 端 **电商交易**：商品/SKU、库存、购物车、订单、支付回调、超时取消                       |
+| 架构   | 模块化单体起步，后期拆 Nest 微服务（通知/搜索）                                           |
+| 环境   | Windows + PowerShell，本机已装 PostgreSQL / Redis（无需 Docker 起步）                     |
+| 节奏   | 每周 10h+，每阶段 5-8 个任务，1-2 阶段/周                                                 |
 | 技术栈 | Nest 12 + ESM（type:module）、pnpm、Prisma（阶段2）、Redis、vitest + oxlint（脚手架自带） |
-| 工作区 | c:/Users/810636/Desktop/nestjs-proj |
+| 工作区 | c:/Users/810636/Desktop/nestjs-proj                                                       |
 
 ## 四、阶段路线图（10 个阶段）
 
-| # | 阶段 | 覆盖 JD 要求 | 状态 |
-|---|---|---|---|
-| 0 | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health | 工程素养 | **进行中** |
-| 1 | 配置与结构化日志：pino + requestId 全链路 + 优雅停机 | 架构设计 | 待开始 |
-| 2 | 数据建模：Prisma schema/迁移/索引/关系/seed | Prisma 建模、索引优化 | 待开始 |
-| 3 | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验) | 拦截器、管道机制 | 待开始 |
-| 4 | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器 | 依赖注入、守卫 | 待开始 |
-| 5 | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询 | 待开始 |
-| 6 | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩 | 高并发接口 | 待开始 |
-| 7 | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁 | 高并发、分布式 | 待开始 |
-| 8 | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费 | 架构设计 | 待开始 |
-| 9 | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI | 单元测试、CI/CD | 待开始 |
-| 10 | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务 | Docker、微服务 | 待开始 |
+| #   | 阶段                                                                 | 覆盖 JD 要求          | 状态       |
+| --- | -------------------------------------------------------------------- | --------------------- | ---------- |
+| 0   | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health       | 工程素养              | **进行中** |
+| 1   | 配置与结构化日志：pino + requestId 全链路 + 优雅停机                 | 架构设计              | 待开始     |
+| 2   | 数据建模：Prisma schema/迁移/索引/关系/seed                          | Prisma 建模、索引优化 | 待开始     |
+| 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | 待开始     |
+| 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | 待开始     |
+| 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | 待开始     |
+| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | 待开始     |
+| 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | 待开始     |
+| 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始     |
+| 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始     |
+| 10  | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务           | Docker、微服务        | 待开始     |
 
 ## 五、请求生命周期（面试高频）
 
@@ -51,13 +51,13 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 
 ## 六、进度日志
 
-### 阶段 0（进行中）
+### 阶段 0（✅ 已完成 2026-09-28）
 
 - [x] **0.1 环境自检 + 项目初始化**：Nest 12 CLI 脚手架 + pnpm，`start:dev` 可跑，Git 已初始化
-- [x] **0.2 ConfigModule + Joi 启动校验**：完成（含清理脚手架自带的 `@nestjs/observe` 遥测模块）
-- [ ] **0.3 全局前缀 + Health 模块**（`/api/v1/health`，db/redis 探活预留 TODO）← **下一步**
-- [ ] **0.4 代码规范**：ESLint/Prettier、tsconfig 路径别名、husky + lint-staged + commitlint
-- [ ] **0.5 阶段总结与验收清单**
+- [x] **0.2 ConfigModule + Joi 启动校验**：完成（含清理 `@nestjs/observe` 遥测依赖）
+- [x] **0.3 全局前缀 + Health 模块**：`/api/v1/health` 返回 `{status,timestamp,uptime,checks}`，db/redis 预留 TODO；逻辑分层到 HealthService
+- [x] **0.4 代码规范**：oxlint + prettier + husky(pre-commit=lint-staged, commit-msg=commitlint) + Conventional Commits 生效（验证提交 db0dd98）
+- [ ] **阶段 1 第一个任务待开始**：结构化日志 pino + requestId 全链路透传 + 优雅停机
 
 ### 踩坑记录（个人错题本）
 
@@ -66,6 +66,11 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 3. **ESM import 路径必须带 `.js` 后缀**（本项目 type:module），漏了启动报错。
 4. `ConfigModule.forRoot` 的 `load` 数组要传**工厂函数** `load: [configuration]`，不是 `configuration()`（延迟求值，等 dotenv 先初始化）。
 5. Joi `validationOptions` 需 `allowUnknown: true`（否则系统环境变量报 not allowed）+ `abortEarly: false`（一次报出所有错误）。
+6. **响应 JSON 里 key 整个消失**：十有八九是对象里塞了 function（少写 `()`）或 `undefined`，`JSON.stringify` 会丢弃它们；`null`/空串则会出现。
+7. **key 拼写错误（reids→redis）编译器不报错**，只有消费方才炸——阶段 3 上 DTO 类型定义让它在编译期暴露。
+8. **钩子"空文件"陷阱**：`.husky/commit-msg` 文件存在但内容为空 = 钩子永远放行。配置类任务的验收必须验证"拦截路径"真的触发。
+9. tsconfig `paths` 规则：用捕获的 `*` 替换目标里的 `*`，`"@/*": ["./src/*"]` 才是对的。
+10. lint-staged 里跑了不存在的 lint 工具配置（eslint 无 config）会静默失败——工具链改动后必须实测一次拦截路径。
 
 ## 七、待用户补充的信息
 

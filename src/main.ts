@@ -1,13 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule, ObserveInstrument } from './app.module.js';
-// import { ConfigService } from '@nestjs/config';
+import { AppModule } from './app.module.js';
+import { Logger } from 'nestjs-pino';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    instrument: ObserveInstrument,
+    bufferLogs: true,
   });
+  app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api/v1');
-  // port = app.get(ConfigService).get('app.port')
-  await app.listen(process.env.PORT ?? 3000);
+  const port = app.get(ConfigService).get('app.port');
+  await app.listen(port ?? 3000);
 }
 await bootstrap();
