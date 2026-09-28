@@ -34,6 +34,5 @@ export class RequestContextInterceptor implements NestInterceptor {
     res.setHeader('x-request-id', requestId);
     this.ctx.set(store);
     return next.handle();
-    // return requestContextAls.run(store, () => next.handle());
   }
 }
