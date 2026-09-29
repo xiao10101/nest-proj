@@ -63,7 +63,11 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **1.1 结构化日志**：nestjs-pino + forRootAsync（ConfigService 注入，绕开装饰器求值时机坑）+ LOG_LEVEL 独立配置 + autoLogging 排除 health + redact 脱敏 Authorization
 - [x] **1.2 请求上下文**：手写 AsyncLocalStorage + requestId Interceptor（透传上游 x-request-id / 生成 UUID / 响应头回写），APP_INTERCEPTOR 注册，RequestContextService 封装 set/get
 - [x] **1.3 优雅停机**：enableShutdownHooks + OnApplicationShutdown（关停日志用 console 防 pino worker 丢日志）+ /health/slow 验证善后窗口
-- [ ] **阶段 2 第一个任务待开始**：Prisma 接入 + 电商核心数据建模
+- [x] **2.1 Prisma 接入**：最终采用 **Prisma 7**（降 6 后实测切回，理由：宁可踩新坑不背过时 API）。driver adapter（@prisma/adapter-pg）+ 自定义 output（src/generated/prisma）+ PrismaService(@Global) + health db 探活 up/down 契约。踩坑：pnpm10 approve-builds、7/6 混装残留 prisma.config.ts、generate 必须每次 schema 变更后跑
+- [x] **2.2 ER 建模评审**：9→8 实体（砍 Cart 独立表，CartItem 挂 userId）、Inventory 挂 Sku（1—1）、金额整数分、OrderItem 快照、Payment 1—N（对账三件套：amount/channelTradeNo/status）
+- [x] **2.3 schema.prisma + 第一次迁移**：8 model + 3 enum，FK 8 条 / UNIQUE 6 条 全部验证通过。踩坑：外键"多"方持有、PSL 关系双向声明、裸外键字段不生成 FK、BigInt 序列化炸弹、SOLD_OUT 与上下架语义混淆
+- [x] **2.4 seed**：tsx 执行（ESM）+ Prisma 7 config 文件配 seed（非 6 的 package.json 约定）+ deleteMany 幂等清库（下游先删）+ migrate reset 一条龙验证。踩坑：ts-node 与 ESM 不兼容、config 文件名必须 prisma.config.ts、postinstall 自动 generate 免疫生成物过期
+- [ ] **2.5 索引评审** ← **下一步**
 
 ### 阶段 1 关键实验记录
 
