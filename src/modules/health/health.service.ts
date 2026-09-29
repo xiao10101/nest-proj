@@ -1,17 +1,27 @@
 import { RequestContextService } from '@/shared/context/request-context.service.js';
+import { PrismaService } from '@/shared/prisma/prisma.service.js';
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+// import { InjectPinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class HealthService implements OnApplicationShutdown {
   constructor(
-    @InjectPinoLogger(HealthService.name)
-    private readonly logger: PinoLogger,
+    // @InjectPinoLogger(HealthService.name)
+    private readonly prisma: PrismaService,
     private readonly ctx: RequestContextService,
   ) {}
+
+  async checkDB(): Promise<'up' | 'down'> {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return 'up';
+    } catch (e) {
+      return 'down';
+    }
+  }
+
   async check() {
-    await new Promise((r) => setImmediate(r));
-    this.logger.debug('health checked');
+    const res = await this.checkDB();
     return {
       requestId: this.ctx.get()?.requestId,
       status: 'ok',
@@ -19,7 +29,7 @@ export class HealthService implements OnApplicationShutdown {
       uptime: process.uptime(),
       // TODO: 阶段 2 实现
       checks: {
-        db: null,
+        db: res,
         redis: null,
       },
     };
@@ -33,8 +43,7 @@ export class HealthService implements OnApplicationShutdown {
 
   async slow(ms: string) {
     const duration = Math.min(Math.max(Number(ms) || 0, 0), 10000); // 想想为什么要 clamp
-    // TODO: await 一个 setTimeout 包成的 Promise
-    await new Promise(() => setTimeout(() => {}, duration));
+    await new Promise((resolve) => setTimeout(resolve, duration));
     return { slow: true, waitedMs: duration };
   }
 }

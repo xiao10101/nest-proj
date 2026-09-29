@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductStatus {
+  ON_SALE
+  OFF_SALE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  FINISHED
+  EXPIRED
+  SHIPPED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAIL
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  phone     String     @unique
+  nickname  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  orders    Order[]
+  cartItems CartItem[]
+}
+
+model Product {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  status      ProductStatus @default(ON_SALE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  skus        Sku[]
+}
+
+model Sku {
+  id         Int         @id @default(autoincrement())
+  productId  Int
+  price      Int
+  spec       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  product    Product     @relation(fields: [productId], references: [id])
+  cartItems  CartItem[]
+  inventory  Inventory?
+  orderItems OrderItem[]
+}
+
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  skuId     Int      @unique
+  available Int
+  locked    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sku       Sku      @relation(fields: [skuId], references: [id])
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  skuId     Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  sku       Sku      @relation(fields: [skuId], references: [id])
+
+  @@unique([userId, skuId])
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  orderNo     String      @unique
+  status      OrderStatus @default(PENDING)
+  userId      Int
+  totalAmount Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id])
+  expireAt    DateTime?
+  orderItems  OrderItem[]
+  payments    Payment[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  skuId     Int
+  skuName   String
+  price     Int
+  subtotal  Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sku       Sku      @relation(fields: [skuId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  amount         Int
+  orderId        Int
+  channelTradeNo String?       @unique
+  status         PaymentStatus @default(PENDING)
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  order          Order         @relation(fields: [orderId], references: [id])
+}
