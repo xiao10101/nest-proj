@@ -1,4 +1,3 @@
-import { requestContextAls } from '@/shared/context/request-context.als.js';
 import { RequestContextService } from '@/shared/context/request-context.service.js';
 import type { RequestContextStore } from '@/shared/context/request-context.types.js';
 import {
@@ -31,6 +30,7 @@ export class RequestContextInterceptor implements NestInterceptor {
     const store: RequestContextStore = {
       requestId,
     };
+    req.requestId = requestId;
     res.setHeader('x-request-id', requestId);
     this.ctx.set(store);
     return next.handle();

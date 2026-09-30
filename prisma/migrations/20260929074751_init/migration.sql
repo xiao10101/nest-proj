@@ -1,13 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `email` on the `User` table. All the data in the column will be lost.
-  - You are about to drop the column `name` on the `User` table. All the data in the column will be lost.
-  - A unique constraint covering the columns `[phone]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `phone` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `updatedAt` to the `User` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "ProductStatus" AS ENUM ('ON_SALE', 'OFF_SALE');
 
@@ -17,16 +7,16 @@ CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PAID', 'CANCELLED', 'FINISHED', '
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAIL');
 
--- DropIndex
-DROP INDEX "User_email_key";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "phone" TEXT NOT NULL,
+    "nickname" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "email",
-DROP COLUMN "name",
-ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "nickname" TEXT,
-ADD COLUMN     "phone" TEXT NOT NULL,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL;
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Product" (
@@ -120,6 +110,12 @@ CREATE TABLE "Payment" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+
+-- CreateIndex
+CREATE INDEX "Product_status_createdAt_idx" ON "Product"("status", "createdAt" DESC);
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Inventory_skuId_key" ON "Inventory"("skuId");
 
 -- CreateIndex
@@ -129,10 +125,16 @@ CREATE UNIQUE INDEX "CartItem_userId_skuId_key" ON "CartItem"("userId", "skuId")
 CREATE UNIQUE INDEX "Order_orderNo_key" ON "Order"("orderNo");
 
 -- CreateIndex
+CREATE INDEX "Order_userId_createdAt_idx" ON "Order"("userId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "OrderItem_orderId_createdAt_idx" ON "OrderItem"("orderId", "createdAt" DESC);
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Payment_channelTradeNo_key" ON "Payment"("channelTradeNo");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+CREATE INDEX "Payment_orderId_createdAt_idx" ON "Payment"("orderId", "createdAt" DESC);
 
 -- AddForeignKey
 ALTER TABLE "Sku" ADD CONSTRAINT "Sku_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

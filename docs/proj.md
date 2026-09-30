@@ -67,7 +67,9 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **2.2 ER 建模评审**：9→8 实体（砍 Cart 独立表，CartItem 挂 userId）、Inventory 挂 Sku（1—1）、金额整数分、OrderItem 快照、Payment 1—N（对账三件套：amount/channelTradeNo/status）
 - [x] **2.3 schema.prisma + 第一次迁移**：8 model + 3 enum，FK 8 条 / UNIQUE 6 条 全部验证通过。踩坑：外键"多"方持有、PSL 关系双向声明、裸外键字段不生成 FK、BigInt 序列化炸弹、SOLD_OUT 与上下架语义混淆
 - [x] **2.4 seed**：tsx 执行（ESM）+ Prisma 7 config 文件配 seed（非 6 的 package.json 约定）+ deleteMany 幂等清库（下游先删）+ migrate reset 一条龙验证。踩坑：ts-node 与 ESM 不兼容、config 文件名必须 prisma.config.ts、postinstall 自动 generate 免疫生成物过期
-- [ ] **2.5 索引评审** ← **下一步**
+- [x] **2.5 索引评审**（docs/index-review.md）：查询倒推索引；删 2 个与 @unique 冗余的索引；补 PG 外键不自动建索引的缺口（Payment/OrderItem.orderId）；复合索引等值在前排序在后；@unique=约束+索引、@@index=纯优化
+- [x] **阶段 2 ✅ 完成（2026-09-29）**
+- [ ] **阶段 3 第一个任务待开始**：统一响应层（Interceptor/Filter/Pipe）
 
 ### 阶段 1 关键实验记录
 
