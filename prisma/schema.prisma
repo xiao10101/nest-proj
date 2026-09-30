@@ -50,6 +50,8 @@ model Product {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   skus        Sku[]
+
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model Sku {
@@ -100,6 +102,8 @@ model Order {
   expireAt    DateTime?
   orderItems  OrderItem[]
   payments    Payment[]
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model OrderItem {
@@ -114,6 +118,8 @@ model OrderItem {
   updatedAt DateTime @updatedAt
   sku       Sku      @relation(fields: [skuId], references: [id])
   order     Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt(sort: Desc)])
 }
 
 model Payment {
@@ -126,4 +132,6 @@ model Payment {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   order          Order         @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt(sort: Desc)])
 }

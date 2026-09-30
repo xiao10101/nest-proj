@@ -7,8 +7,10 @@ import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './modules/health/health.module.js';
 import { configuration } from './config/configuration.js';
 import { RequestContextService } from './shared/context/request-context.service.js';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 
 @Module({
   imports: [
@@ -54,6 +56,14 @@ import { RequestContextInterceptor } from './common/interceptors/request-context
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestContextInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })
