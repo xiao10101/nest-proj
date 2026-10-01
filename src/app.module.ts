@@ -1,15 +1,23 @@
 import { BadRequestException, Module, ValidationPipe } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
-import { validationSchema } from './config/validation.schema.js';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { validationSchema } from './config/validation.schema.js';
+import { configuration } from './config/configuration.js';
+// controllers
+import { AppController } from './app.controller.js';
+// services
+import { AppService } from './app.service.js';
+import { RequestContextService } from './shared/context/request-context.service.js';
+// modules
 import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './modules/health/health.module.js';
-import { configuration } from './config/configuration.js';
-import { RequestContextService } from './shared/context/request-context.service.js';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { AuthMoudle } from './modules/auth/auth.module.js';
+import { RedisModule } from './redis/redis.module.js';
+import { PrismaModule } from './shared/prisma/prisma.module.js';
+// interceptors
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
+// filters
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { flattenValidationErrors } from './common/pipes/flatten-validation-errors.js';
 
@@ -48,7 +56,10 @@ import { flattenValidationErrors } from './common/pipes/flatten-validation-error
         },
       }),
     }),
+    PrismaModule,
+    RedisModule,
     HealthModule,
+    AuthMoudle,
   ],
   controllers: [AppController],
   providers: [

@@ -1,12 +1,10 @@
 import { RequestContextService } from '@/shared/context/request-context.service.js';
 import { PrismaService } from '@/shared/prisma/prisma.service.js';
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-// import { InjectPinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class HealthService implements OnApplicationShutdown {
   constructor(
-    // @InjectPinoLogger(HealthService.name)
     private readonly prisma: PrismaService,
     private readonly ctx: RequestContextService,
   ) {}
