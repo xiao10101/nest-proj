@@ -10,5 +10,12 @@ export const configuration = () => ({
   redis: {
     host: process.env.REDIS_HOST,
     port: Number(process.env.REDIS_PORT),
+    db: process.env.REDIS_DB,
+    maxRetriesPerRequest: process.env.MAX_RETRIES_PER_REQUEST,
+    lazyConnect: true,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN,
   },
 });

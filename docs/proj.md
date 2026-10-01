@@ -72,7 +72,9 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **3.1 统一响应：TransformInterceptor + HttpExceptionFilter + BusinessException**（提交 b4bd434，2026-09-30）：统一四段结构 `{code,message,data,requestId}`；BusinessException 继承 HttpException 携带业务码；未知异常 console.log 兜底；APP_INTERCEPTOR/APP_FILTER 全局注册
 - [x] **3.2 全局 ValidationPipe + DTO 校验**（2026-10-01）：APP_PIPE（useValue）注册；`transform + whitelist`（决策：静默剥离，不因客户端多传无害字段而拒绝）；exceptionFactory 递归拍平校验错误（抽为纯函数 `common/pipes/flatten-validation-errors.ts`）；嵌套 DTO 三件套 `@IsOptional + @ValidateNested + @Type`；filter 用 `as ExceptionBody` 收窄 `getResponse()` 并提取 message（数组 join）；未知异常改注入 nestjs-pino Logger.error（显式取 message/stack/requestId）。运行时验证：5 条 curl + 500 响应脱敏全部通过（AI 实测）。demo/echo 为临时演示接口，阶段 5 开发业务前可删
 - [x] **阶段 3 ✅ 完成（2026-10-01）**
-- [ ] **阶段 4 第一个任务待开始**：认证授权（JWT + Passport + Guard）
+- [x] **4.1 Auth 模块 + 验证码登录链路**（2026-10-02）：设计修正——本项目为手机号+验证码登录（无密码，读 docs/ER.md 确认），放弃此前误加的 password/role 方案。ioredis 直连（独立 provider + ConfigService 注入 + @Global RedisModule），RedisService 封装 set/get/delete；OTP 流程：codeKey 300s TTL、验证码有效期内禁止重发（有意取舍，未做 60s lock）、登录 upsert 自动建号、验证码一次性消费。验收：发码/重发限流/错码拒绝/对码登录/码消费/落库 全部通过（AI 实测）
+- [x] **4.2 JWT 签发**（2026-10-02）：@nestjs/jwt + JwtModule.registerAsync（ConfigService 注入 jwt.secret/jwt.expiresIn）；payload 最小化 `{sub: user.id}`（exp/iat 由 signOptions 自动写入，2h）；JWT_SECRET/JWT_EXPIRES_IN 进 Joi 必填校验（缺配置启动即失败）。验收：三段式 token、payload 无敏感信息、篡改 token 签名拦截、Joi 防呆 全部通过（AI 实测）。本任务关键坑：JwtService 手动进 providers 会遮蔽 JwtModule 配置好的实例（secretOrPrivateKey must have a value）；@Global() 只能贴 @Module 类；@Global 模块必须被 import 一次才生效（PrismaModule 曾从未被导入，靠各模块本地 provider 掩盖 = 多实例双连接池）
+- [ ] **4.3 待开始**：Passport jwt strategy + JwtAuthGuard + @CurrentUser() 自定义装饰器（token → 请求上下文的"当前用户"）
 
 ### 阶段 1 关键实验记录
 
@@ -99,6 +101,13 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 16. **provider 里 `useValue` 会静默覆盖 `useClass`**：两者同时写时只有 useValue 生效且不报错——意图是"用现成实例"就只写 useValue。
 17. **exceptionFactory 只在校验失败时被调用**：拿合法请求测它永远"没进函数"，不是 bug。调管道行为要用必失败的请求。
 18. **`getResponse()` 返回 `string | object`**：访问属性必须先收窄（声明异常体形状 + `as` 或 `in` 收窄）。运行时是谁（`@Type` 指向谁 / pipe 实例化成谁），静态类型就写谁，别写 `object`。
+19. **BusinessException 必须且只能 `throw`**：`return` 它会变成 `code:0` 的成功响应；裸 `new` 不接不抛是 no-op，流程照常往下走。三种错法都要防。
+20. **pino 日志插值：对象在前、消息在后**：`logger.debug({ phone, code }, 'msg')`；`logger.debug('msg', { obj })` 里的对象会被当无占位符的插值参数忽略，数据根本不出现在日志里。
+21. **`Number(undefined)` 是 `NaN`，`??` 不兜底**（NaN 非 nullish）：环境变量转数字用 `Number(x) || 默认值`。同理配置链路要走到头——configuration 工厂定义了键但 provider 直读 `process.env`，等于只修了上半截。
+22. **class 缺 `@Injectable()`**：`emitDecoratorMetadata` 不会生成构造参数元数据，DI 报 "Can't resolve dependencies"——不是 provider 注册的问题，是装饰器缺失。
+23. **404 这类"没匹配到路由"的错误响应没有 requestId**：Interceptor 不执行（`req.requestId` 不存在），但全局 Filter 仍会兜住并给统一结构；`JSON.stringify` 顺带丢掉 undefined 的 key（错题 6 活案例）。面试聊生命周期的好素材。
+24. **Redis key 格式收敛到一处**：key 拼接散在三处手写导致读/写对不上、整条链路静默失效；抽成私有方法（`codeKey(phone)`）单一来源。
+25. **dev watch 进程会卡在旧代码**：重构中途编译挂过后恢复的代码不一定被热载，404/新路由不生效时先重启 `start:dev`，看 `Mapped {...}` 日志确认。
 
 ## 七、待用户补充的信息
 
