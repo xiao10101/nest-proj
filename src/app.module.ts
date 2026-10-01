@@ -1,12 +1,8 @@
 import { BadRequestException, Module, ValidationPipe } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { validationSchema } from './config/validation.schema.js';
 import { configuration } from './config/configuration.js';
-// controllers
-import { AppController } from './app.controller.js';
-// services
-import { AppService } from './app.service.js';
 import { RequestContextService } from './shared/context/request-context.service.js';
 // modules
 import { LoggerModule } from 'nestjs-pino';
@@ -20,6 +16,8 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 // filters
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { flattenValidationErrors } from './common/pipes/flatten-validation-errors.js';
+// guards
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
@@ -61,9 +59,7 @@ import { flattenValidationErrors } from './common/pipes/flatten-validation-error
     HealthModule,
     AuthMoudle,
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     RequestContextService,
     {
       provide: APP_INTERCEPTOR,
@@ -88,6 +84,10 @@ import { flattenValidationErrors } from './common/pipes/flatten-validation-error
         exceptionFactory: (errors) =>
           new BadRequestException(flattenValidationErrors(errors)),
       }),
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

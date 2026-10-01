@@ -1,3 +1,4 @@
+import { RedisService } from '@/redis/redis.service.js';
 import { RequestContextService } from '@/shared/context/request-context.service.js';
 import { PrismaService } from '@/shared/prisma/prisma.service.js';
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
@@ -6,6 +7,7 @@ import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 export class HealthService implements OnApplicationShutdown {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly ctx: RequestContextService,
   ) {}
 
@@ -18,8 +20,18 @@ export class HealthService implements OnApplicationShutdown {
     }
   }
 
+  async checkRedis(): Promise<'up' | 'down'> {
+    try {
+      await this.redis.ping();
+      return 'up';
+    } catch (e) {
+      return 'down';
+    }
+  }
+
   async check() {
     const res = await this.checkDB();
+    const redisRes = await this.checkRedis();
     return {
       requestId: this.ctx.get()?.requestId,
       status: 'ok',
@@ -28,7 +40,7 @@ export class HealthService implements OnApplicationShutdown {
       // TODO: 阶段 2 实现
       checks: {
         db: res,
-        redis: null,
+        redis: redisRes,
       },
     };
   }

@@ -29,19 +29,19 @@
 
 ## 四、阶段路线图（10 个阶段）
 
-| #   | 阶段                                                                 | 覆盖 JD 要求          | 状态       |
-| --- | -------------------------------------------------------------------- | --------------------- | ---------- |
-| 0   | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health       | 工程素养              | **进行中** |
-| 1   | 配置与结构化日志：pino + requestId 全链路 + 优雅停机                 | 架构设计              | 待开始     |
-| 2   | 数据建模：Prisma schema/迁移/索引/关系/seed                          | Prisma 建模、索引优化 | 待开始     |
-| 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | 待开始     |
-| 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | 待开始     |
-| 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | 待开始     |
-| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | 待开始     |
-| 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | 待开始     |
-| 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始     |
-| 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始     |
-| 10  | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务           | Docker、微服务        | 待开始     |
+| #   | 阶段                                                                 | 覆盖 JD 要求          | 状态                             |
+| --- | -------------------------------------------------------------------- | --------------------- | -------------------------------- |
+| 0   | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health       | 工程素养              | ✅ 完成                          |
+| 1   | 配置与结构化日志：pino + requestId 全链路 + 优雅停机                 | 架构设计              | ✅ 完成                          |
+| 2   | 数据建模：Prisma schema/迁移/索引/关系/seed                          | Prisma 建模、索引优化 | ✅ 完成                          |
+| 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | ✅ 完成                          |
+| 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | ✅ 完成（RBAC 决策不做，见 4.4） |
+| 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | 待开始                           |
+| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | 待开始                           |
+| 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | 待开始                           |
+| 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始                           |
+| 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始                           |
+| 10  | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务           | Docker、微服务        | 待开始                           |
 
 ## 五、请求生命周期（面试高频）
 
@@ -74,7 +74,10 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **阶段 3 ✅ 完成（2026-10-01）**
 - [x] **4.1 Auth 模块 + 验证码登录链路**（2026-10-02）：设计修正——本项目为手机号+验证码登录（无密码，读 docs/ER.md 确认），放弃此前误加的 password/role 方案。ioredis 直连（独立 provider + ConfigService 注入 + @Global RedisModule），RedisService 封装 set/get/delete；OTP 流程：codeKey 300s TTL、验证码有效期内禁止重发（有意取舍，未做 60s lock）、登录 upsert 自动建号、验证码一次性消费。验收：发码/重发限流/错码拒绝/对码登录/码消费/落库 全部通过（AI 实测）
 - [x] **4.2 JWT 签发**（2026-10-02）：@nestjs/jwt + JwtModule.registerAsync（ConfigService 注入 jwt.secret/jwt.expiresIn）；payload 最小化 `{sub: user.id}`（exp/iat 由 signOptions 自动写入，2h）；JWT_SECRET/JWT_EXPIRES_IN 进 Joi 必填校验（缺配置启动即失败）。验收：三段式 token、payload 无敏感信息、篡改 token 签名拦截、Joi 防呆 全部通过（AI 实测）。本任务关键坑：JwtService 手动进 providers 会遮蔽 JwtModule 配置好的实例（secretOrPrivateKey must have a value）；@Global() 只能贴 @Module 类；@Global 模块必须被 import 一次才生效（PrismaModule 曾从未被导入，靠各模块本地 provider 掩盖 = 多实例双连接池）
-- [ ] **4.3 待开始**：Passport jwt strategy + JwtAuthGuard + @CurrentUser() 自定义装饰器（token → 请求上下文的"当前用户"）
+- [x] **4.3 Passport + Guard + @CurrentUser**（2026-10-02）：passport-jwt strategy（validate 收到的是已验签解码的 payload 而非 token；无状态返回 `{userId: payload.sub}`，secret 与签发侧同源 config.get）；`secretOrKey` 用 `!` 断言（Joi 启动必填兜底）；`@CurrentUser()` createParamDecorator 读 req.user；profile 演示接口 `@UseGuards(AuthGuard('jwt'))`（具名 JwtAuthGuard 抽取放到 4.4）。验收：无 token/篡改 401、真 token 200 返回 userId（AI 实测）。**实测纠错**：Guard 拒绝的请求也没有 requestId——Interceptor 在 Guard 之后执行（Middleware→Guard→Interceptor→Pipe），与 404 同机制
+- [x] **4.4 收官：全局守卫 + @Public 白名单 + 大扫除**（2026-10-02）：具名 JwtAuthGuard（common/guards）+ APP_GUARD 全局注册；@Public()（SetMetadata+Reflector.getAllAndOverride，handler 优先于 class）；HealthController 类级豁免、auth code/login 方法级豁免；删除 demo/echo（AppController/AppController.spec 整份）、testVerifyToken、verifyToken；getProfile 类型修正 `{userId: number}`。回归：health/code/login 放行、profile 无 token 401 带 token 200 全过（AI 实测）。RBAC 决策：不加 role 字段，留到后台管理系统
+- [x] **阶段 4 ✅ 完成（2026-10-02）**
+- [ ] **阶段 5 第一个任务待开始**：核心业务模块（商品/SKU → 购物车 → 订单）
 
 ### 阶段 1 关键实验记录
 

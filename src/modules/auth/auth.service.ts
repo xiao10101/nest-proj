@@ -18,7 +18,6 @@ export class AuthService {
 
   async login({ phone, code }: LoginDto) {
     const phoneKey = this.codeKey(phone);
-    // const lockKey = this.lockKey(dto.phone);
     const codeInCache = await this.redis.get(phoneKey);
     if (!codeInCache || codeInCache !== code) {
       throw new BusinessException(100000, '验证码错误或已过期');
@@ -29,17 +28,12 @@ export class AuthService {
       create: { phone }, // 不存在就建
     });
     this.redis.delete(phoneKey);
-    // this.redis.delete(lockKey);
     return {
       token: this.jwt.sign({
         sub: user.id,
       }),
     };
   }
-
-  //   private lockKey(phone: string) {
-  //     return `auth:code:lock:${phone}`;
-  //   }
 
   private codeKey(phone: string) {
     return `auth:code:${phone}`;
@@ -56,10 +50,5 @@ export class AuthService {
     this.redis.set(phoneKey, code.toString(), 300);
     // this.redis.set(lockKey, '1', 60);
     this.logger.debug({ phone, code }, '测试验证码');
-  }
-
-  async verifyToken(token: string) {
-    const { sub } = this.jwt.verify(token);
-    return { userId: sub };
   }
 }
