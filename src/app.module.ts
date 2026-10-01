@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { BadRequestException, Module, ValidationPipe } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { validationSchema } from './config/validation.schema.js';
@@ -7,10 +7,11 @@ import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './modules/health/health.module.js';
 import { configuration } from './config/configuration.js';
 import { RequestContextService } from './shared/context/request-context.service.js';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { flattenValidationErrors } from './common/pipes/flatten-validation-errors.js';
 
 @Module({
   imports: [
@@ -64,6 +65,18 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        // 静默剥离——多余字段被删掉
+        whitelist: true,
+        // // 硬报错——发现多余字段直接抛 400
+        // forbidNonWhitelisted: true,
+        transform: true,
+        exceptionFactory: (errors) =>
+          new BadRequestException(flattenValidationErrors(errors)),
+      }),
     },
   ],
 })

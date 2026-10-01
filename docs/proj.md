@@ -69,7 +69,10 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **2.4 seed**：tsx 执行（ESM）+ Prisma 7 config 文件配 seed（非 6 的 package.json 约定）+ deleteMany 幂等清库（下游先删）+ migrate reset 一条龙验证。踩坑：ts-node 与 ESM 不兼容、config 文件名必须 prisma.config.ts、postinstall 自动 generate 免疫生成物过期
 - [x] **2.5 索引评审**（docs/index-review.md）：查询倒推索引；删 2 个与 @unique 冗余的索引；补 PG 外键不自动建索引的缺口（Payment/OrderItem.orderId）；复合索引等值在前排序在后；@unique=约束+索引、@@index=纯优化
 - [x] **阶段 2 ✅ 完成（2026-09-29）**
-- [ ] **阶段 3 第一个任务待开始**：统一响应层（Interceptor/Filter/Pipe）
+- [x] **3.1 统一响应：TransformInterceptor + HttpExceptionFilter + BusinessException**（提交 b4bd434，2026-09-30）：统一四段结构 `{code,message,data,requestId}`；BusinessException 继承 HttpException 携带业务码；未知异常 console.log 兜底；APP_INTERCEPTOR/APP_FILTER 全局注册
+- [x] **3.2 全局 ValidationPipe + DTO 校验**（2026-10-01）：APP_PIPE（useValue）注册；`transform + whitelist`（决策：静默剥离，不因客户端多传无害字段而拒绝）；exceptionFactory 递归拍平校验错误（抽为纯函数 `common/pipes/flatten-validation-errors.ts`）；嵌套 DTO 三件套 `@IsOptional + @ValidateNested + @Type`；filter 用 `as ExceptionBody` 收窄 `getResponse()` 并提取 message（数组 join）；未知异常改注入 nestjs-pino Logger.error（显式取 message/stack/requestId）。运行时验证：5 条 curl + 500 响应脱敏全部通过（AI 实测）。demo/echo 为临时演示接口，阶段 5 开发业务前可删
+- [x] **阶段 3 ✅ 完成（2026-10-01）**
+- [ ] **阶段 4 第一个任务待开始**：认证授权（JWT + Passport + Guard）
 
 ### 阶段 1 关键实验记录
 
@@ -91,6 +94,11 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 11. **装饰器参数求值时机**：`@Module` 装饰器在 import 时求值，早于 ConfigModule 的 dotenv 加载——模块配置里裸读 `process.env` 拿不到 `.env` 值，必须用 `forRootAsync` + 注入 `ConfigService`（forRoot 静态求值 vs forRootAsync 容器求值）。
 12. **`nest start --watch` 绑架 Ctrl+C**：watch 父进程硬杀子进程，生命周期/信号类验证必须 `pnpm build && node dist/main.js` 在生产模式下做。
 13. **配置链路意识**：`.env` → dotenv → configuration 工厂 → ConfigService，工厂里没定义的嵌套键 `config.get` 拿不到；遇到 undefined 先查数据流向，不要绕过。
+14. **`@ValidateNested()` 只属于"值为对象/数组"的字段**：贴在标量上必报 `nested property must be either object or array`，且是**合法请求也 400**。嵌套校验三件套缺一不可：`@IsOptional`（可选语义）+ `@ValidateNested`（递归）+ `@Type(() => Dto)`（实例化，否则装饰器元数据拿不到）。
+15. **`{ ...err }` 对 Error 对象无效**：`message`/`stack` 是不可枚举属性，spread 出来是空对象。日志要显式取字段，不能指望展开运算符。同理验证：`console.log({...new Error('x')})` → `{}`。
+16. **provider 里 `useValue` 会静默覆盖 `useClass`**：两者同时写时只有 useValue 生效且不报错——意图是"用现成实例"就只写 useValue。
+17. **exceptionFactory 只在校验失败时被调用**：拿合法请求测它永远"没进函数"，不是 bug。调管道行为要用必失败的请求。
+18. **`getResponse()` 返回 `string | object`**：访问属性必须先收窄（声明异常体形状 + `as` 或 `in` 收窄）。运行时是谁（`@Type` 指向谁 / pipe 实例化成谁），静态类型就写谁，别写 `object`。
 
 ## 七、待用户补充的信息
 

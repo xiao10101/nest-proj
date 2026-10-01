@@ -1,4 +1,5 @@
-import { RequestContextService } from '@/shared/context/request-context.service.js';
+// import { RequestContextService } from '@/shared/context/request-context.service.js';
+import { Logger } from 'nestjs-pino';
 import {
   ArgumentsHost,
   Catch,
@@ -8,10 +9,11 @@ import {
 } from '@nestjs/common';
 import { BusinessException } from './business.exception.js';
 
+type ExceptionBody = string | { message?: string | string[] };
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(private readonly ctx: RequestContextService) {}
-
+  constructor(private readonly logger: Logger) {}
   catch(exception: any, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse();
     const req = host.switchToHttp().getRequest();
@@ -25,11 +27,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       code = exception.getStatus();
-      const response = exception.getResponse();
-      message =
-        typeof response !== 'string' ? JSON.stringify(response) : response;
+      const response = exception.getResponse() as ExceptionBody;
+      let msg = '';
+      if (typeof response === 'object' && response.message) {
+        msg = Array.isArray(response.message)
+          ? response.message.join('; ')
+          : response.message;
+      } else if (typeof response === 'object' && !response.message) {
+        msg = JSON.stringify(response);
+      }
+      message = typeof response === 'string' ? response : msg;
     } else {
-      console.log(exception);
+      this.logger.error({
+        requestId: req.requestId,
+        message: exception.message,
+        stack: exception.stack,
+      });
     }
     res.status(status).json({
       code,
