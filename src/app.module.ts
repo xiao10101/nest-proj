@@ -11,6 +11,7 @@ import { AuthMoudle } from './modules/auth/auth.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { PrismaModule } from './shared/prisma/prisma.module.js';
 import { ProductModule } from './modules/product/product.module.js';
+import { CartModule } from './modules/cart/cart.module.js';
 // interceptors
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
@@ -60,6 +61,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     HealthModule,
     AuthMoudle,
     ProductModule,
+    CartModule,
   ],
   providers: [
     RequestContextService,

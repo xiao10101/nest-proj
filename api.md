@@ -8,7 +8,7 @@ curl -s -X POST http://localhost:11001/api/v1/auth/code -H 'Content-Type: applic
 ## login
 
 curl -s -X POST http://localhost:11001/api/v1/auth/login -H 'Content-Type: application/json' \
--d '{"phone":"13820261001", "code":"617899"}'
+-d '{"phone":"13820261001", "code":"481645"}'
 
 ## testVerifyToken
 
@@ -18,3 +18,12 @@ curl -s -X POST http://localhost:11001/api/v1/auth/testVerifyToken -H 'Content-T
 ## profile
 
 curl -s http://localhost:11001/api/v1/auth/profile -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImlhdCI6MTc5MDg4MzM2NywiZXhwIjoxNzkwODgzMzY4fQ.qucngAKhON2SJ_61octHgzuTx04MBbAzicyWYTl2Gxk"
+
+curl -s http://localhost:11001/api/v1/cart/items -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImlhdCI6MTc5MTA0ODIxNSwiZXhwIjoxNzkxMDU1NDE1fQ.9F4U2_gWb_S_zz10hC_eIHgusNXhV5XyZSgkIOtvjc4"
+
+curl -s -X PATCH http://localhost:11001/api/v1/cart/items/2 \
+-H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+-d '{"quantity":-5}'
+
+curl -s -X POST http://localhost:11001/api/v1/cart/items -H "Authorization: Bearer $TOKEN" \
+-H 'Content-Type: application/json' -d '{"skuId":212,"quantity":2}'
