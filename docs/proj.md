@@ -94,7 +94,7 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **7.3 回调并发窗口补课**（2026-10-04）：并发双发同流水号 → 预检双双落空 → 撞唯一约束。**重大发现：Prisma 7 + driver adapter(@prisma/adapter-pg) 下唯一冲突不映射为 P2002**，而是 DriverAdapterError 包装 Postgres 原生 23505（meta.driverAdapterError.cause.{kind:'UniqueConstraintViolation', constraint.index}）——教科书的 instanceof/code=P2002 检测全失效。修复=双路径检测（P2002+meta.target 或 adapter 23505+constraint.index 含 channelTradeNo）→ 转幂等成功。取证技巧：临时诊断重抛把错误类名/code/meta JSON 带进响应（读不到服务日志时的利器）。验收：两轮并发双发每轮恰好 1 行 Payment、输家 idempotent:true、零 500（AI 实测）
 - [x] **7.4 限流**（2026-10-04）：手写 Redis 固定窗口（`SET key 0 EX windowSec NX` 建窗 + `INCR` 计数——窗口创建原子化，规避 INCR/EXPIRE 两步竞态导致计数器永生）；`@RateLimit(limit, windowSec)` 装饰器 + 全局 RateLimitInterceptor（Reflector 读元数据，未标注接口透传）；auth/code 挂 5次/60s。验收：6 连发 201→400×4→429——两层防御同框实证（2-5 的 400 是 4.1 业务规则、第 6 次 429 是限流层；限流计数发生在业务规则之前，被业务拒绝的请求同样计数）。局限注记：IP 粒度 NAT 误伤；req.ip 反代后需 trust proxy；与 @nestjs/throttler 的对照留 backlog
 - [x] **阶段 7 ✅ 完成（2026-10-04）**（7.5 分布式锁 token+Lua 留 backlog）
-- [ ] **6.5（补做，升级为正式任务）压测与性能基线**：缓存命中 vs 未命中的 QPS/P99 量化对比——简历性能数字的出处
+- [x] **6.5（补做）压测与性能基线**（2026-10-04）：autocannon Node API，101 商品 URL 数组两遍对比（cold=未命中回填 / warm=命中，各跑两轮取稳定值）。数据：QPS +13~18%（10.1k~11.7k → 11.4k~13.8k）、avg 2.8 倍（0.40→0.14ms）、P99 2.5 倍（5→2ms）。**核心结论：本机小数据下 QPS 提升有限——瓶颈在 HTTP/事件循环而非 DB（单查仅 0.2ms）；缓存收益放大的四条件=查询变贵/网络 RTT/资源竞争/容量维度**。简历措辞：P99 5ms→2ms + DB 读压力从每请求一次降为每 TTL 一次（容量收益）。方法学：先测→看数字→问瓶颈在哪→再判 ROI；QPS 看趋势、P99 看长尾
 
 ### 阶段 1 关键实验记录
 
