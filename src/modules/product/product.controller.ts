@@ -1,7 +1,18 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Query,
+} from '@nestjs/common';
 import { ProductService } from './product.service.js';
 import { Public } from '@/common/decorators/public.decorator.js';
-import { ListProductsQuery } from './dto/list-products.query.js';
+import {
+  ListProductsQuery,
+  UpdateProductStatusDto,
+} from './dto/list-products.query.js';
 
 @Controller('products')
 export class ProductController {
@@ -17,5 +28,13 @@ export class ProductController {
   @Public()
   async get(@Param('id', ParseIntPipe) id: number) {
     return await this.productService.detail(id);
+  }
+
+  @Patch(':id')
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProductStatusDto,
+  ) {
+    return await this.productService.updateStatus(id, dto.status);
   }
 }

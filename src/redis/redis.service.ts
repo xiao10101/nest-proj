@@ -43,4 +43,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async ping() {
     return await this.redis.ping();
   }
+
+  incr(key: string) {
+    return this.redis.incr(key);
+  }
+
+  setNx(key: string, value: string, ttlSec: number) {
+    return this.redis.set(key, value, 'EX', ttlSec, 'NX');
+  }
 }
