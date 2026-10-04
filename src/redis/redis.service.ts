@@ -51,4 +51,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   setNx(key: string, value: string, ttlSec: number) {
     return this.redis.set(key, value, 'EX', ttlSec, 'NX');
   }
+  async hitWindow(key: string, windowSec: number) {
+    await this.redis.set(key, '0', 'EX', windowSec, 'NX');
+    return this.redis.incr(key);
+  }
 }

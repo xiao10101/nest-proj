@@ -3,6 +3,7 @@ import { AuthService } from './auth.service.js';
 import { GetCodeDto, LoginDto } from '@/common/dtos/user.dto.js';
 import { CurrentUser } from '@/common/decorators/current-user.decorator.js';
 import { Public } from '@/common/decorators/public.decorator.js';
+import { RateLimit } from '@/common/decorators/rate-limit.decorator.js';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +17,7 @@ export class AuthController {
 
   @Post('code')
   @Public()
+  @RateLimit(5, 60)
   async getCode(@Body() dto: GetCodeDto) {
     return await this.authService.getCode(dto.phone);
   }

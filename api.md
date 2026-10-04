@@ -8,7 +8,7 @@ curl -s -X POST http://localhost:11001/api/v1/auth/code -H 'Content-Type: applic
 ## login
 
 curl -s -X POST http://localhost:11001/api/v1/auth/login -H 'Content-Type: application/json' \
--d '{"phone":"13820261001", "code":"481645"}'
+-d '{"phone":"13820261001", "code":"485536"}'
 
 ## testVerifyToken
 
@@ -27,3 +27,8 @@ curl -s -X PATCH http://localhost:11001/api/v1/cart/items/2 \
 
 curl -s -X POST http://localhost:11001/api/v1/cart/items -H "Authorization: Bearer $TOKEN" \
 -H 'Content-Type: application/json' -d '{"skuId":212,"quantity":2}'
+
+npx autocannon -c 10 -d 2 -m POST \
+-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImlhdCI6MTc5MTEwODQyMiwiZXhwIjoxNzkxMTE1NjIyfQ.PDclfui1FtQ1HKsi2zrLyU1-K6BNguqAreFt6kCy0Sg" -H 'Content-Type: application/json' \
+-b '{"skuId":18,"quantity":1}' \
+http://localhost:11001/api/v1/orders
