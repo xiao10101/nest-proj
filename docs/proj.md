@@ -29,19 +29,19 @@
 
 ## 四、阶段路线图（10 个阶段）
 
-| #   | 阶段                                                                 | 覆盖 JD 要求          | 状态                             |
-| --- | -------------------------------------------------------------------- | --------------------- | -------------------------------- |
-| 0   | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health       | 工程素养              | ✅ 完成                          |
-| 1   | 配置与结构化日志：pino + requestId 全链路 + 优雅停机                 | 架构设计              | ✅ 完成                          |
-| 2   | 数据建模：Prisma schema/迁移/索引/关系/seed                          | Prisma 建模、索引优化 | ✅ 完成                          |
-| 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | ✅ 完成                          |
-| 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | ✅ 完成（RBAC 决策不做，见 4.4） |
-| 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | ✅ 完成                          |
-| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | ✅ 完成                          |
-| 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | 待开始                           |
-| 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始                           |
-| 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始                           |
-| 10  | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务           | Docker、微服务        | 待开始                           |
+| #   | 阶段                                                                 | 覆盖 JD 要求          | 状态                              |
+| --- | -------------------------------------------------------------------- | --------------------- | --------------------------------- |
+| 0   | 工程骨架：Nest CLI/ESLint/tsconfig别名/ConfigModule+Joi/Health       | 工程素养              | ✅ 完成                           |
+| 1   | 配置与结构化日志：pino + requestId 全链路 + 优雅停机                 | 架构设计              | ✅ 完成                           |
+| 2   | 数据建模：Prisma schema/迁移/索引/关系/seed                          | Prisma 建模、索引优化 | ✅ 完成                           |
+| 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | ✅ 完成                           |
+| 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | ✅ 完成（RBAC 决策不做，见 4.4）  |
+| 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | ✅ 完成                           |
+| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | ✅ 完成                           |
+| 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | ✅ 完成（7.5 分布式锁留 backlog） |
+| 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始                            |
+| 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始                            |
+| 10  | 容器化与微服务化：多阶段 Dockerfile + 拆分独立 Nest 微服务           | Docker、微服务        | 待开始                            |
 
 ## 五、请求生命周期（面试高频）
 
@@ -88,7 +88,13 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **6.3 列表缓存 + 版本号失效**（2026-10-04）：设计决策"只缓存首页（无 cursor），深页直查"——低命中 key 是负资产；key 归一化（用默认值处理后的参数拼 key，`query.limit` undefined 混入 key 的 bug）；**版本号失效模式 = 缓存版 cache busting**（INCR 世代号 O(1) 失效，旧世代 TTL 自然死亡，对比枚举删除的成本爆炸）；ver key 无 TTL（世代号必须永生）；RedisService 按需生长（+incr）。业务断言实测：在售商品下架后立即从在售列表消失（ver 6→7）。测试教训：ALL 列表含 OFF_SALE 是正确行为，断言要选对查询（ON_SALE 过滤）
 - [x] **6.4 缓存三防**（2026-10-04）：穿透 → 空值哨兵 `'NULL'` 短 TTL 60s（NULL 检查必须在通用命中检查前；哨兵与合法数据类型可区分；布隆过滤器留概念）；雪崩 → TTL 抖动 `300+randomInt(0,61)`（幅度 10-20%；randomInt 开区间上界）；击穿 → SET NX 重建互斥（抢到锁重建 + finally 放锁；未抢到轮询吃缓存 5×100ms；超时兜底直查，正确性优先）。坑：无轮询的 fallback 让互斥形同虚设（49 个请求照样查库）；updateStatus 缺 await → DEL 先于 DB 更新完成（偶发回填旧值）。验收：5 并发全 200 + 锁释放 + 穿透空值标记（AI 实测）
 - [x] **阶段 6 ✅ 完成（2026-10-04）**
-- [ ] **阶段 7 第一个任务待开始**：高并发写（库存并发安全 / 回调 P2002 补课 / 限流）
+- [x] **7.1 超卖事故复现与修复**（2026-10-04）：autocannon 复现 check-then-act 竞态（临时 50ms sleep 拉宽窗口 → 10 请求全过校验、available=-9、成交 10 单）；修复 = 原子条件更新（`updateMany where available>=qty`，count===0 → 40020，检查压进行锁、READ COMMITTED 重检查对最新行求值）；回归：同流量恰好 1 单成交、available=0。前置教训：压测前先冒烟单发（sku18 商品处于 OFF_SALE，5058 请求全被 40010 拦，误判竞态未复现）；竞态复现是概率性的 → 人为拉宽窗口（sleep 模拟慢操作/GC 停顿）
+- [x] **7.2 乐观锁对照实现**（2026-10-04）：Inventory 加 version 字段（迁移后漏 generate——schema/DB/client 三层排错模型再次实战）；CAS 循环（读快照→where version 匹配→count 0 重试，上限 3 次防活锁）；"真没货"（直接 40020）与"版本冲突"（重试）两种失败严格区分。回归：恰好 1 单成交、version 0→1（AI 实测）
+- [x] **7.2-checkpoint3 三方案对比与 YAGNI 收口**（2026-10-04）：选型=条件更新（单字段不变量恰好可表达、高冲突快速失败无重试风暴、无额外字段）；CAS 价值在泛化（多字段/整行不变量时唯一出路），实测教训：冲突率是漂移状态非静态事实，选型按最坏情况；version 字段按 YAGNI 迁移删除，CAS 实现留 git 历史。**坑：schema 三层时序——migrate(改库)→generate(改 client)→重启(换内存)缺一即 500**（删列迁移后旧 client SELECT 已删列；且 prisma 7 的 migrate dev 不自动 generate）
+- [x] **7.3 回调并发窗口补课**（2026-10-04）：并发双发同流水号 → 预检双双落空 → 撞唯一约束。**重大发现：Prisma 7 + driver adapter(@prisma/adapter-pg) 下唯一冲突不映射为 P2002**，而是 DriverAdapterError 包装 Postgres 原生 23505（meta.driverAdapterError.cause.{kind:'UniqueConstraintViolation', constraint.index}）——教科书的 instanceof/code=P2002 检测全失效。修复=双路径检测（P2002+meta.target 或 adapter 23505+constraint.index 含 channelTradeNo）→ 转幂等成功。取证技巧：临时诊断重抛把错误类名/code/meta JSON 带进响应（读不到服务日志时的利器）。验收：两轮并发双发每轮恰好 1 行 Payment、输家 idempotent:true、零 500（AI 实测）
+- [x] **7.4 限流**（2026-10-04）：手写 Redis 固定窗口（`SET key 0 EX windowSec NX` 建窗 + `INCR` 计数——窗口创建原子化，规避 INCR/EXPIRE 两步竞态导致计数器永生）；`@RateLimit(limit, windowSec)` 装饰器 + 全局 RateLimitInterceptor（Reflector 读元数据，未标注接口透传）；auth/code 挂 5次/60s。验收：6 连发 201→400×4→429——两层防御同框实证（2-5 的 400 是 4.1 业务规则、第 6 次 429 是限流层；限流计数发生在业务规则之前，被业务拒绝的请求同样计数）。局限注记：IP 粒度 NAT 误伤；req.ip 反代后需 trust proxy；与 @nestjs/throttler 的对照留 backlog
+- [x] **阶段 7 ✅ 完成（2026-10-04）**（7.5 分布式锁 token+Lua 留 backlog）
+- [ ] **6.5（补做，升级为正式任务）压测与性能基线**：缓存命中 vs 未命中的 QPS/P99 量化对比——简历性能数字的出处
 
 ### 阶段 1 关键实验记录
 

@@ -17,6 +17,7 @@ import { PaymentModule } from './modules/payment/payment.module.js';
 // interceptors
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
+import { RateLimitIntercrceptor } from './common/interceptors/rate-limit.interceptor.js';
 // filters
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { flattenValidationErrors } from './common/pipes/flatten-validation-errors.js';
@@ -96,6 +97,10 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RateLimitIntercrceptor,
     },
   ],
 })

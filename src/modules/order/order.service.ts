@@ -21,16 +21,19 @@ export class OrderService {
       if (!sku.inventory) {
         throw new BusinessException(40011, '库存不存在');
       }
-      if (sku.inventory.available < dto.quantity) {
-        throw new BusinessException(40020, '库存不足');
-      }
-      await tx.inventory.update({
-        where: { id: sku.inventory.id },
+      const updated = await tx.inventory.updateMany({
+        where: {
+          id: sku.inventory.id,
+          available: { gte: dto.quantity },
+        },
         data: {
           available: { decrement: dto.quantity },
           locked: { increment: dto.quantity },
         },
       });
+      if (updated.count === 0) {
+        throw new BusinessException(40020, '库存不足');
+      }
       const order = await tx.order.create({
         data: {
           userId,

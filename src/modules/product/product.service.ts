@@ -158,6 +158,10 @@ export class ProductService {
 
     if (!product) throw new NotFoundException(`商品 ${id} 不存在`);
 
+    if (product.status === status) {
+      return { id, status };
+    }
+
     const result = await this.prisma.product.update({
       where: { id },
       data: { status },
