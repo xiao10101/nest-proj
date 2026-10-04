@@ -13,4 +13,5 @@ export const validationSchema = Joi.object({
   MAX_RETRIES_PER_REQUEST: Joi.number().required(),
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().required(),
+  PAYMENT_SIGN_KEY: Joi.string().required(),
 }).options({ allowUnknown: true });
