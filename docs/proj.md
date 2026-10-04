@@ -37,7 +37,7 @@
 | 3   | 统一响应层：Interceptor + ExceptionFilter + Pipe(DTO 校验)           | 拦截器、管道机制      | ✅ 完成                          |
 | 4   | 认证授权：JWT + Passport + Guard + RBAC + 自定义装饰器               | 依赖注入、守卫        | ✅ 完成（RBAC 决策不做，见 4.4） |
 | 5   | 核心业务模块：商品/SKU、购物车、订单、支付回调（游标分页、复杂查询） | 复杂查询              | ✅ 完成                          |
-| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | 待开始                           |
+| 6   | 高并发读：Redis 缓存、Cache-Aside、穿透/击穿/雪崩                    | 高并发接口            | ✅ 完成                          |
 | 7   | 高并发写：事务、乐观锁/悲观锁、幂等、限流、分布式锁                  | 高并发、分布式        | 待开始                           |
 | 8   | 异步化：BullMQ 队列、延迟任务（超时取消）、重试与幂等消费            | 架构设计              | 待开始                           |
 | 9   | 质量：单元测试 + e2e(supertest/vitest) + 测试库 + CI                 | 单元测试、CI/CD       | 待开始                           |
@@ -83,7 +83,12 @@ Middleware → Guard → Interceptor(before) → Pipe → Handler → Intercepto
 - [x] **5.4 创建订单：事务 + 库存扣减**（2026-10-04）：`$transaction` 交互式事务（校验/扣库存/建单/快照全部用 tx，throw 即整体回滚）；库存两字段搬运语义（available→locked，真出库留给支付/超时）；OrderItem 快照（skuName=商品名+spec、price/subtotal 取下单时值）；orderNo 生成器（日期+毫秒+4位 crypto 随机，21 位定长，10 万次无重复）；业务码分段 40004/40010/40011/40020。坑：重构丢 @Injectable（错题 22 三犯）、$transaction 返回值=回调返回值（不 return 客户端拿不到 orderNo）。验收：库存搬运 49|34→47|36、快照落库、库存不足回滚零痕迹（AI 实测）。路由已定名 /orders（复数，与 /products、/cart 一致）；购物车结算入口未做（可选）
 - [x] **5.5 支付回调：幂等与对账**（2026-10-04）：渠道回调无 JWT → @Public + 签名校验（mock 固定 key，PAY_SIGN_KEY 走完整配置链路）；幂等 = channelTradeNo 唯一约束 + 预检（重复回调返回成功是渠道契约）；乱序防御（非 PENDING → 40009）；金额对账（amount ≠ totalAmount → 40030，事务内比对）；出库语义 locked -= qty（第三次库存搬运）。验收：正常回调/重复幂等/乱序 40009/不存在 40404/金额不符拒绝零污染 全过（AI 实测）。并发窗口（两回调同至 → catch P2002 转幂等）留阶段 7
 - [x] **阶段 5 ✅ 完成（2026-10-04）**
-- [ ] **阶段 6 第一个任务待开始**：高并发读（Redis 缓存 Cache-Aside）
+- [x] **6.1 详情缓存 Cache-Aside 读路径**（2026-10-04）：三段式（查缓存→查库→回填 TTL 300s）；key 规范 `product:detail:{id}`（延续 auth:code:{phone} 命名习惯）；命中/未命中日志可观测；NotFoundException 分支不缓存（6.4 穿透伏笔）。坑：RedisService 手动进子模块 providers（@Global 模块的导出再注册 = 本地孤儿，REDIS_CLIENT 解析失败——全局 provider 主题第三变体）；Logger 双胞胎（@nestjs/common 与 nestjs-pino 同名类，import 来源决定日志体系）
+- [x] **6.2 下架接口 + 缓存失效联动**（2026-10-04）：PATCH /products/:id/status（第一个登录态业务写接口，默认受全局守卫保护）；失效策略定为"先更新 DB 再删缓存"（对照反模式：更新缓存的并发乱序覆盖、先删后更的回填旧值窗口）；核心观念：缓存是可重建的投影，写路径只负责删、重建交给读路径；detailKey 收敛单一来源（错题 7+24 实战：`detial` 拼写雷若未收敛，会在失效联动处静默炸掉）。验收：下架后 detail 立即反映新状态、EXISTS 0→回填 1（AI 实测）
+- [x] **6.3 列表缓存 + 版本号失效**（2026-10-04）：设计决策"只缓存首页（无 cursor），深页直查"——低命中 key 是负资产；key 归一化（用默认值处理后的参数拼 key，`query.limit` undefined 混入 key 的 bug）；**版本号失效模式 = 缓存版 cache busting**（INCR 世代号 O(1) 失效，旧世代 TTL 自然死亡，对比枚举删除的成本爆炸）；ver key 无 TTL（世代号必须永生）；RedisService 按需生长（+incr）。业务断言实测：在售商品下架后立即从在售列表消失（ver 6→7）。测试教训：ALL 列表含 OFF_SALE 是正确行为，断言要选对查询（ON_SALE 过滤）
+- [x] **6.4 缓存三防**（2026-10-04）：穿透 → 空值哨兵 `'NULL'` 短 TTL 60s（NULL 检查必须在通用命中检查前；哨兵与合法数据类型可区分；布隆过滤器留概念）；雪崩 → TTL 抖动 `300+randomInt(0,61)`（幅度 10-20%；randomInt 开区间上界）；击穿 → SET NX 重建互斥（抢到锁重建 + finally 放锁；未抢到轮询吃缓存 5×100ms；超时兜底直查，正确性优先）。坑：无轮询的 fallback 让互斥形同虚设（49 个请求照样查库）；updateStatus 缺 await → DEL 先于 DB 更新完成（偶发回填旧值）。验收：5 并发全 200 + 锁释放 + 穿透空值标记（AI 实测）
+- [x] **阶段 6 ✅ 完成（2026-10-04）**
+- [ ] **阶段 7 第一个任务待开始**：高并发写（库存并发安全 / 回调 P2002 补课 / 限流）
 
 ### 阶段 1 关键实验记录
 

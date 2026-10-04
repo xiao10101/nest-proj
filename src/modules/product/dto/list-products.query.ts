@@ -17,3 +17,8 @@ export class ListProductsQuery {
   @IsEnum(ProductStatus)
   status: ProductStatus;
 }
+
+export class UpdateProductStatusDto {
+  @IsEnum(ProductStatus)
+  status: ProductStatus;
+}
