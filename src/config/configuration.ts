@@ -18,4 +18,7 @@ export const configuration = () => ({
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
   },
+  pyament: {
+    signKey: process.env.PAYMENT_SIGN_KEY,
+  },
 });

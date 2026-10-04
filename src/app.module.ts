@@ -12,6 +12,8 @@ import { RedisModule } from './redis/redis.module.js';
 import { PrismaModule } from './shared/prisma/prisma.module.js';
 import { ProductModule } from './modules/product/product.module.js';
 import { CartModule } from './modules/cart/cart.module.js';
+import { OrderModule } from './modules/order/order.module.js';
+import { PaymentModule } from './modules/payment/payment.module.js';
 // interceptors
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
@@ -62,6 +64,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     AuthMoudle,
     ProductModule,
     CartModule,
+    OrderModule,
+    PaymentModule,
   ],
   providers: [
     RequestContextService,
